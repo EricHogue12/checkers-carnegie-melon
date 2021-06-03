@@ -1,0 +1,516 @@
+#########################
+#########################
+#########################
+
+# the 2d list for the checkerboard
+app.checkerboard=makeList(8,8)
+# lightGreen is a placeholder
+app.stepsPerSecond=30
+app.color1='lightGreen'
+app.color2='lightGreen'
+app.introductionison=True
+app.startscreen1ison=False
+app.startscreen2ison=False
+app.ingame=False
+app.player=1
+app.hascheckerbeenclicked=False
+app.movehastriedtobemade=False
+app.doublejump=False
+app.player1score=0
+app.player2score=0
+
+secondCheckers=Group()
+firstCheckers=Group()
+
+introduction=Group(Rect(0,0,400,400, fill=rgb(250,200,210)),
+Label('Checkers', 200,150, size=80, fill='red'),
+Label('Click anywhere to start a 2-player game', 200,250, size=20, fill='black'),
+Label('*Make sure to click a checker to select it',200,350, size=11),
+Label('and then click a box to move the checker*',200,370, size=11))
+
+blueChecker=Group(Circle(-10,300,17, fill='blue'), Circle(-10,300, 14, 
+fill=None, border='black', borderWidth=1), Circle(-10,300, 10, 
+fill=None, border='black', borderWidth=1),Circle(-10,300, 6, 
+fill=None, border='black', borderWidth=1))
+
+redChecker=Group(Circle(410,300,17, fill='red'), Circle(410,300, 14, 
+fill=None, border='black', borderWidth=1), Circle(410,300, 10, 
+fill=None, border='black', borderWidth=1),Circle(410,300, 6, 
+fill=None, border='black', borderWidth=1))
+
+
+selectedChecker=[]
+availableJumpers=[]
+
+
+
+startscreen1=Group(Rect(0,0,400,400, fill='lightBlue'),
+Label('Player 1', 200,35, size=60, fill='darkGreen'),
+Label('Choose your color:', 200,90, fill='darkGreen', size=30, font='monospace'),
+Circle(50,165,40, fill='darkKhaki', border='black'),
+Circle(150,165,40, fill='white', border='black'),
+Circle(250,165,40, fill='lightGreen', border='black'),
+Circle(350,165,40, fill='gold', border='black'),
+Circle(50,255,40, fill='rosyBrown', border='black'),
+Circle(150,255,40, fill='salmon', border='black'),
+Circle(250,255,40, fill='aquaMarine', border='black'),
+Circle(350,255,40, fill='lightSteelBlue', border='black'),
+Circle(50,345,40, fill='plum', border='black'),
+Circle(150,345,40, fill='sandyBrown', border='black'),
+Circle(250,345,40, fill='cadetBlue', border='black'),
+Circle(350,345,40, fill='chocolate', border='black'))
+startscreen1.toFront()
+startscreen1.visible=False
+startscreen2=Group(Rect(0,0,400,400, fill='lightBlue'),
+Label('Player 2', 200,35, size=60, fill='darkGreen'),
+Label('Choose your color:', 200,90, fill='darkGreen', size=30, font='monospace'),
+Circle(50,165,40, fill='darkKhaki', border='black'),
+Circle(150,165,40, fill='white', border='black'),
+Circle(250,165,40, fill='lightGreen', border='black'),
+Circle(350,165,40, fill='gold', border='black'),
+Circle(50,255,40, fill='rosyBrown', border='black'),
+Circle(150,255,40, fill='salmon', border='black'),
+Circle(250,255,40, fill='aquaMarine', border='black'),
+Circle(350,255,40, fill='lightSteelBlue', border='black'),
+Circle(50,345,40, fill='plum', border='black'),
+Circle(150,345,40, fill='sandyBrown', border='black'),
+Circle(250,345,40, fill='cadetBlue', border='black'),
+Circle(350,345,40, fill='chocolate', border='black'))
+startscreen2.toFront()
+startscreen2.visible=False
+
+def onMousePress(mouseX,mouseY):
+    # This function holds basically every other function below it.
+    # It detects a mouse press and does whatever the helper functions 
+    # and custom variables tell it to do.
+    if (app.introductionison==True):
+        app.introductionison=False
+        introduction.visible=False
+        app.startscreen1ison=True
+        startscreen1.visible=True
+        blueChecker.visible=False
+        redChecker.visible=False
+        
+    elif (app.startscreen1ison==True):
+        target=startscreen1.hitTest(mouseX,mouseY)
+        if (target!=None):
+            if (target.fill!='darkGreen') and (target.fill!='lightBlue'):
+                app.color1=target.fill
+                app.startscreen1ison=False
+                startscreen1.visible=False
+                app.startscreen2ison=True
+                startscreen2.visible=True
+    elif (app.startscreen2ison==True):
+        target1=startscreen2.hitTest(mouseX,mouseY)
+        if (target1!=None):
+            if (target1.fill!='darkGreen') and (target1.fill!='lightBlue'):
+                if (app.color1!=target1.fill):
+                    app.color2=target1.fill
+                    app.startscreen2ison=False
+                    startscreen2.visible=False
+                    app.ingame=True
+                    drawBoard()
+                    drawCharacters()
+    elif (app.ingame==True):
+        if (app.player==1):
+            for firstChecker in firstCheckers.children:
+                if (areTheCheckersJumpsValid(firstChecker.centerX,firstChecker.centerY,firstChecker.width,app.player)!=False):
+                    availableJumpers.append(areTheCheckersJumpsValid(firstChecker.centerX,firstChecker.centerY,firstChecker.width,app.player))
+        if (app.player==2):
+            for secondChecker in secondCheckers.children:
+               if (areTheCheckersJumpsValid(secondChecker.centerX,secondChecker.centerY,secondChecker.width,app.player)!=False):
+                   availableJumpers.append(areTheCheckersJumpsValid(secondChecker.centerX,secondChecker.centerY,secondChecker.width,app.player))
+                
+        if (isCheckerClicked(mouseX,mouseY,app.player)!=False) and (app.hascheckerbeenclicked==False):
+            if (len(availableJumpers)==0):
+                clickedchecker=isCheckerClicked(mouseX,mouseY,app.player)
+                selectedChecker.append(clickedchecker)
+                selectedChecker[0].opacity=50
+                app.hascheckerbeenclicked=True
+            else:
+                clickedchecker=isCheckerClicked(mouseX,mouseY,app.player)
+                for i in range(len(availableJumpers)):
+                    if (availableJumpers[i]==clickedchecker):
+                        selectedChecker.append(clickedchecker)
+                        selectedChecker[0].opacity=50
+                        app.hascheckerbeenclicked=True
+        elif (app.hascheckerbeenclicked==True) and (isCheckerClicked(mouseX,mouseY,app.player)!=False) and (app.doublejump==False):
+            if (len(availableJumpers)==0):
+                selectedChecker[0].opacity=100
+                selectedChecker.clear()
+                clickedchecker1=isCheckerClicked(mouseX,mouseY,app.player)
+                selectedChecker.append(clickedchecker1)
+                selectedChecker[0].opacity=50
+            else:
+                clickedchecker1=isCheckerClicked(mouseX,mouseY,app.player)
+                for i in range(len(availableJumpers)):
+                    if (availableJumpers[i]==clickedchecker1):
+                        selectedChecker[0].opacity=100
+                        selectedChecker.clear()
+                        clickedchecker1=isCheckerClicked(mouseX,mouseY,app.player)
+                        selectedChecker.append(clickedchecker1)
+                        selectedChecker[0].opacity=50
+        elif (app.hascheckerbeenclicked==True) and (isCheckerClicked(mouseX,mouseY,app.player)==False):
+            moveIsValid=False
+            app.movehastriedtobemade=True
+            clickedbox=boxClicked(mouseX,mouseY)
+            validJumps=areTheCheckersJumpsValid(selectedChecker[0].centerX,selectedChecker[0].centerY,selectedChecker[0].width,app.player)
+            app.movehastriedtobemade=False
+            if (validJumps!=False):
+                for i in range(len(validJumps)):
+                    if (isJumpValidMove(clickedbox.centerX,clickedbox.centerY,selectedChecker[0].centerX,selectedChecker[0].centerY,selectedChecker[0].width,app.player,validJumps[i],clickedbox.fill)==True):
+                        moveIsValid=True
+                        checkerRemoved=validJumps[i]
+                if (moveIsValid==True):
+                    selectedChecker[0].centerX=clickedbox.centerX
+                    selectedChecker[0].centerY=clickedbox.centerY
+                    soundEffect=Sound('http://commondatastorage.googleapis.com/codeskulptor-assets/week7-button.m4a')
+                    soundEffect.play(loop=False)
+                    if (shouldPieceBeKing(selectedChecker[0],app.player)==True) and (selectedChecker[0].width<35):
+                        selectedChecker[0].width+=10
+                        selectedChecker[0].height+=10
+                    if (app.player==1):
+                        secondCheckers.remove(checkerRemoved)
+                        app.player1score+=1
+                    else:
+                        firstCheckers.remove(checkerRemoved)
+                        app.player2score+=1
+                    validJumps2=areTheCheckersJumpsValid(selectedChecker[0].centerX,selectedChecker[0].centerY,selectedChecker[0].width,app.player)
+                    if (validJumps2!=False):
+                        app.doublejump=True
+                    else:
+                        app.doublejump=False
+                        selectedChecker[0].opacity=100
+                        if (app.player==1):
+                            app.player=2
+                        else:
+                            app.player=1
+                        selectedChecker.clear()
+                        app.hascheckerbeenclicked=False
+                        while (len(availableJumpers)>0):
+                            availableJumpers.pop()
+                    if (app.player1score>=12):
+                        someoneWins(1)
+                    if (app.player2score>=12):
+                        someoneWins(2)
+            if (validJumps==False):        
+                if (isMoveValidOnBoard(selectedChecker[0].centerX,selectedChecker[0].centerY,clickedbox.centerX,clickedbox.centerY, clickedbox.fill, selectedChecker[0].width, app.player)==True):
+                    if (isSquareTaken(clickedbox.centerX,clickedbox.centerY)==False):
+                        selectedChecker[0].centerX=clickedbox.centerX
+                        selectedChecker[0].centerY=clickedbox.centerY
+                        soundEffect=Sound('http://commondatastorage.googleapis.com/codeskulptor-assets/week7-button.m4a')
+                        soundEffect.play(loop=False)
+                        app.hascheckerbeenclicked=False
+                        selectedChecker[0].opacity=100
+                        if (shouldPieceBeKing(selectedChecker[0],app.player)==True) and (selectedChecker[0].width<35):
+                            selectedChecker[0].width+=10
+                            selectedChecker[0].height+=10
+                        if (app.player==1):
+                            app.player=2
+                        else:
+                            app.player=1
+                        selectedChecker.clear()
+                        while (len(availableJumpers)>0):
+                            availableJumpers.pop()
+        
+        
+def drawBoard():
+    # This function uses the 2d list app.checkerboard to create the checkerboard
+    for row in range(len(app.checkerboard)):
+        for col in range(len(app.checkerboard[0])):
+            if (row%2==0) and (col%2==0):
+                app.color=rgb(200,0,0)
+            elif (row%2==1) and (col%2==1):
+                app.color=rgb(200,0,0)
+            else:
+                app.color=rgb(75,25,0)
+            app.checkerboard[row][col]=Rect(row*50,col*50,50,50, fill=app.color)
+
+
+def drawCharacter1(row,col):
+    # This function creates the first set of checkers and then
+    # adds them to the first group of checkers
+    firstChecker=Group(Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 17, fill=app.color1), 
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 14, fill=None, border='black', borderWidth=1),
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 10, fill=None, border='black', borderWidth=1),
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 6, fill=None, border='black', borderWidth=1))
+    
+    firstCheckers.add(firstChecker)
+    firstCheckers.toFront()
+    
+def drawCharacter2(row,col):
+    # This function creates the second set of checkers and then
+    # adds them to the second group of checkers
+    secondChecker=Group(Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 17, fill=app.color2),
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 14, fill=None, border='black', borderWidth=1),
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 10, fill=None, border='black', borderWidth=1),
+    Circle(app.checkerboard[row][col].centerX,
+    app.checkerboard[row][col].centerY, 6, fill=None, border='black', borderWidth=1))
+    secondCheckers.add(secondChecker)
+    secondCheckers.toFront()
+def drawCharacters():
+    # This function draws both sets of checkers in the appropriate places
+    for row in range(len(app.checkerboard)):
+        for col in range(len(app.checkerboard[0])):
+            if (col<3):
+                if (row%2==0) and (col%2==1):
+                    drawCharacter1(row,col)
+                elif (row%2==1) and (col%2==0):
+                    drawCharacter1(row,col)
+            if (col>4):
+                if (row%2==0) and (col%2==1):
+                    drawCharacter2(row,col)
+                elif (row%2==1) and (col%2==0):
+                    drawCharacter2(row,col)
+
+def isCheckerClicked(mouseX,mouseY,player):
+    # This detects if one of the checkers in the groups are clicked with the mouse
+    # and then returns the checker
+    if (player==1):
+        target1=firstCheckers.hitTest(mouseX,mouseY)
+        if (target1!=None):
+            return target1
+    
+    elif (player==2):
+        target2=secondCheckers.hitTest(mouseX,mouseY)
+        if (target2!=None):
+            return target2
+    
+    return False
+            
+def boxClicked(mouseX,mouseY):
+    # This detects if one of the boxes in app.checkerboard is clicked
+    # and then returns the box
+    for row in range(len(app.checkerboard)):
+        for col in range(len(app.checkerboard[0])):
+            if (app.checkerboard[row][col].hits(mouseX,mouseY)==True):
+                return app.checkerboard[row][col]
+                
+def isMoveValidOnBoard(checkerX,checkerY,boxX,boxY,boxFill,checkerSize,player):
+    # This function is used when no jump is available 
+    # it checks if the move from the checker to the box is valid returning
+    # either true or false
+    dist=distance(checkerX,checkerY,boxX,boxY)
+    ang=angleTo(checkerX,checkerY,boxX,boxY)
+    if (boxFill==rgb(75,25,0)):
+        if (player==1) and (checkerSize==34):
+            if (dist<71) and (dist>2):
+                if (ang>90) and (ang<270):
+                    return True
+        if (player==2) and (checkerSize==34):
+            if (dist<71) and (dist>2):
+                if (ang<90) or (ang>270):
+                    return True
+        if (checkerSize>=35):
+            if (dist<71) and (dist>2):
+                return True
+    return False
+    
+def shouldPieceBeKing(checker,player):
+    # This checks if a piece is on its top row meaning it should be a king
+    if (player==1):
+        if (checker.centerY==375):
+            return True
+    if (player==2):
+        if (checker.centerY==25):
+            return True
+    return False
+    
+def isSquareTaken(boxX,boxY):
+    # This checks to see if the box that the checker is trying to move to
+    # is already taken or not
+    for firstChecker in firstCheckers.children:
+        for secondChecker in secondCheckers.children:
+            if (secondChecker.centerX==boxX) and (secondChecker.centerY==boxY):
+                return True
+            if (firstChecker.centerX==boxX) and (firstChecker.centerY==boxY):
+                return True
+    return False
+    
+def doesCheckerHaveJumps(checkerX,checkerY,checkerSize,player):
+    # This function checks if one of the checkers has a jump and if it does
+    # then it gets added to the list.
+    # if the list has at least one value in it then it gets returned
+    # otherwise it returns as false
+    jumpOptions=[]
+    if (player==2):
+        for firstChecker in firstCheckers.children:
+            dist=distance(checkerX,checkerY,firstChecker.centerX,firstChecker.centerY)
+            ang=angleTo(checkerX,checkerY,firstChecker.centerX,firstChecker.centerY)
+            if (firstChecker.centerX>25) and (firstChecker.centerX<375):
+                if (firstChecker.centerY>25) and (firstChecker.centerY<375):
+                    if (checkerSize==34):
+                        if (dist<71) and (dist>2):
+                            if (ang<90) or (ang>270):
+                                jumpOptions.append(firstChecker)
+                    if (checkerSize!=34):
+                        if (dist<71) and (dist>2):
+                            jumpOptions.append(firstChecker)
+    if (player==1):
+        for secondChecker in secondCheckers.children:
+            dist1=distance(checkerX,checkerY,secondChecker.centerX,secondChecker.centerY)
+            ang1=angleTo(checkerX,checkerY,secondChecker.centerX,secondChecker.centerY)
+            if (secondChecker.centerX>25) and (secondChecker.centerX<375):
+                if (secondChecker.centerY>25) and (secondChecker.centerY<375):
+                    if (checkerSize==34):
+                        if (dist1<71) and (dist1>2):
+                            if (ang1>90) and (ang1<270):
+                                jumpOptions.append(secondChecker)
+                    if (checkerSize>=35):
+                        if (dist1<71) and (dist1>2):
+                            jumpOptions.append(secondChecker)
+    if (len(jumpOptions)>0):
+        return jumpOptions
+    else:
+        return False
+
+
+
+
+                
+            
+                                    
+                    
+
+def areTheCheckersJumpsValid(checkerX,checkerY,checkerSize,player):
+    # this checks to see if the jumps returned from doesCheckerHaveJumps
+    # are actually valid by testing if there is another checker blocking the jump
+    # first all of the values from doesCheckerHaveJumps are added to a new list
+    # and if one of the values from the list is invalid it will be popped.
+    # If validJumpOptions (the new list) has at least one value then either
+    # the list or the checker itself will be returned depending upon custom variables
+    validJumpOptions=[]
+    if (doesCheckerHaveJumps(checkerX,checkerY,checkerSize,player)!=False):
+        theOpposingCheckers=doesCheckerHaveJumps(checkerX,checkerY,checkerSize,player)
+        for i in range(len(theOpposingCheckers)):
+            validJumpOptions.append(theOpposingCheckers[i])
+            ang=angleTo(checkerX,checkerY,theOpposingCheckers[i].centerX,theOpposingCheckers[i].centerY)
+            for firstChecker in firstCheckers.children:
+                dist2=distance(theOpposingCheckers[i].centerX,theOpposingCheckers[i].centerY,firstChecker.centerX,firstChecker.centerY)
+                ang2=angleTo(theOpposingCheckers[i].centerX,theOpposingCheckers[i].centerY,firstChecker.centerX,firstChecker.centerY)
+                if (int(ang2-0.5)==int(ang-0.5)):
+                    if (dist2<71) and (dist2>1):
+                        validJumpOptions.pop()
+            for secondChecker in secondCheckers.children:
+                dist22=distance(theOpposingCheckers[i].centerX,theOpposingCheckers[i].centerY,secondChecker.centerX,secondChecker.centerY)
+                ang22=angleTo(theOpposingCheckers[i].centerX,theOpposingCheckers[i].centerY,secondChecker.centerX,secondChecker.centerY)
+                if (int(ang22-0.5)==int(ang-0.5)):
+                    if (dist22<71) and (dist22>1):
+                        validJumpOptions.pop()
+        
+        if (len(validJumpOptions)>0):
+            if (app.movehastriedtobemade==True):
+                return validJumpOptions
+            else:
+                for firstChecker in firstCheckers.children:
+                    if (checkerX==firstChecker.centerX) and (checkerY==firstChecker.centerY):
+                        return firstChecker
+                for secondChecker in secondCheckers.children:
+                    if (checkerX==secondChecker.centerX) and (checkerY==secondChecker.centerY):
+                        return secondChecker
+    return False    
+    
+
+
+            
+def isJumpValidMove(boxX,boxY,checkerX,checkerY,checkerSize,player,otherChecker,boxFill):
+    # This checks to see if the move between the checker and the box clicked
+    # is the right movement
+    # it will return as true or false
+    ang=angleTo(checkerX,checkerY,otherChecker.centerX,otherChecker.centerY)
+    ang2=angleTo(checkerX,checkerY,boxX,boxY)
+    dist=distance(checkerX,checkerY, boxX,boxY)
+    if (boxFill==rgb(75,25,0)):
+        if (player==2) and (checkerSize==34):
+            if (int(ang-0.5)==int(ang2-0.5)):
+                if (ang<90) or (ang>270):
+                    if (dist<142) and (dist>71):
+                        return True
+        if (player==1) and (checkerSize==34):
+            if (int(ang-0.5)==int(ang2-0.5)):
+                if (ang>90) and (ang<270):
+                    if (dist<142) and (dist>71):
+                        return True
+        if (checkerSize!=34):
+            if (int(ang-0.5)==int(ang2-0.5)):
+                if (dist<142) and (dist>71):
+                    return True
+    return False
+    
+def someoneWins(player):
+    # this is used when one player doesn't have any checkers left
+    # and brings up a screen with the image of a crown, the background color
+    # from the specific player, an automated voice, and the right label.
+    music=Sound('https://www.google.com/speech-api/v2/synthesize?enc=mpeg&client=chromium&key=AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw&text=Player%20one%20wins!&lang=en-GB&name=rjs&speed=0.5&pitch=0.5')
+    music1=Sound('https://www.google.com/speech-api/v2/synthesize?enc=mpeg&client=chromium&key=AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw&text=Player%20two%20wins!&lang=en-GB&name=rjs&speed=0.5&pitch=0.5')
+    if (player==1):
+        firstCheckers.clear()
+        for row in range(len(app.checkerboard)):
+            for col in range(len(app.checkerboard[0])):
+                app.checkerboard[row][col].visible=False
+        app.background=app.color1
+        Label('Player 1 Wins!',200,60, fill='black', size=50)
+        img1=Image('https://pngimg.com/uploads/crown/crown_PNG16.png',0,100)
+        img1.width-=400
+        img1.height-=300
+        music.play(loop=False)
+    if (player==2):
+        secondCheckers.clear()
+        for row in range(len(app.checkerboard)):
+            for col in range(len(app.checkerboard[0])):
+                app.checkerboard[row][col].visible=False
+        app.background=app.color2
+        Label('Player 2 Wins!',200,60, fill='black', size=50)
+        img1=Image('https://pngimg.com/uploads/crown/crown_PNG16.png',0,100)
+        img1.width-=400
+        img1.height-=300
+        music1.play(loop=False)
+
+def onStep():
+    if (app.introductionison==True):
+        if (blueChecker.right<200) and (redChecker.left>200):
+            blueChecker.centerX+=1
+            redChecker.centerX-=1
+            app.stepsPerSecond+=1
+        
+        
+###################################
+###################################
+###################################
+
+# Eric Hogue
+
+# Rubric Locations
+
+# Loops: One loop is used on line 114 to loop through all of the checkers in the
+# group firstCheckers
+
+# Groups: Line 231 is an example of the group firstChecker with a base circle
+# and then lines to add texture
+
+# Motion: Line 474 is where the onStep function is that moves two checkers
+# closer to each other while they have not hit each other and only when the
+# start screen is on
+
+# Events: onMousePress is used on line 80
+
+# Complex conditional: an example of a complex conditional is used on line 104
+
+# Properties and Methods: Line 116 within onMousePress uses the list method append
+# when the custom properties allow it to
+
+# Objects: On line 28, there is a shape named blue checker. This contains a bunch
+# of combined shapes with a base and then lines to give it texture. An example
+# of a list is used on line 39 which contains certain checkers at different points
+# of time
+
+
+
+
